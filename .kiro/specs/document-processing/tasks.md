@@ -1,0 +1,308 @@
+# Implementation Plan: Document Processing Module
+
+## Overview
+
+This implementation plan breaks down the document-processing module into discrete coding tasks. The module handles document uploads (receipts, bank statements, POS exports) with secure S3 storage and async Gemini AI processing. Implementation uses TypeScript with Prisma, Bull/BullMQ for job queues, and AWS SDK for S3 operations.
+
+## Tasks
+
+- [ ] 1. Set up project structure and database schema
+  - [ ] 1.1 Create Prisma schema for Document and ProcessingJob models
+    - Add DocumentType, DocumentStatus, and JobStatus enums
+    - Create Document model with all fields from design
+    - Create ProcessingJob model with retry tracking
+    - Add indexes for businessId, userId, status, uploadedAt
+    - _Requirements: 10.1, 10.4, 10.5_
+  - [ ] 1.2 Create database migration and apply schema
+    - Generate Prisma migration
+    - Verify indexes and constraints are created
+    - _Requirements: 10.1_
+  - [ ] 1.3 Create TypeScript interfaces and types
+    - Define Document, ProcessingJob, and API request/response types
+    - Define DocumentType, DocumentStatus, JobStatus enums
+    - Create validation types for file uploads
+    - _Requirements: 12.1_
+
+- [ ] 2. Implement file type validation with magic bytes
+  - [ ] 2.1 Create FileTypeValidator service
+    - Implement magic byte detection for JPEG (0xFF 0xD8 0xFF)
+    - Implement magic byte detection for PNG (0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A)
+    - Implement magic byte detection for PDF (0x25 0x50 0x44 0x46)
+    - Implement CSV structure validation
+    - Return detected DocumentType or null for invalid files
+    - _Requirements: 1.1, 1.2, 2.1, 2.2, 3.1, 3.2_
+  - [ ] 2.2 Write property test for file type validation
+    - **Property 1: File Type Validation Correctness**
+    - Generate random buffers with/without valid magic bytes
+    - Verify correct detection for JPEG, PNG, PDF
+    - Verify CSV structure validation
+    - **Validates: Requirements 1.1, 1.2, 2.1, 2.2, 3.1, 3.2**
+  - [ ] 2.3 Create SizeValidator service
+    - Implement individual file size check (10MB limit)
+    - Implement batch total size check (50MB limit)
+    - Return validation result with size and limit info
+    - _Requirements: 4.1, 4.2, 4.3, 4.4_
+  - [ ] 2.4 Write property test for size validation
+    - **Property 2: File Size Limit Enforcement**
+    - Generate files of various sizes around 10MB boundary
+    - Generate batches of various total sizes around 50MB boundary
+    - Verify correct acceptance/rejection
+    - **Validates: Requirements 4.1, 4.2, 4.3, 4.4**
+
+- [ ] 3. Checkpoint - Ensure validation tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Implement S3 storage service
+  - [ ] 4.1 Create StorageService with S3 client configuration
+    - Configure AWS SDK v3 S3 client
+    - Support AWS S3, Cloudflare R2, and MinIO via endpoint config
+    - Implement server-side encryption configuration
+    - _Requirements: 8.1, 8.6_
+  - [ ] 4.2 Implement single-part upload
+    - Upload file buffer to S3 with content type
+    - Generate unique S3 key with businessId path component
+    - Return upload result with key, bucket, etag
+    - _Requirements: 1.4, 2.4, 3.3, 8.5_
+  - [ ] 4.3 Implement multipart upload for large files
+    - Detect files over 5MB threshold
+    - Split into parts and upload with multipart API
+    - Complete multipart upload and return result
+    - _Requirements: 4.5_
+  - [ ] 4.4 Write property test for S3 key uniqueness
+    - **Property 4: Unique S3 Key Generation**
+    - Generate multiple uploads with same filename
+    - Verify all S3 keys are unique
+    - Verify S3 keys contain businessId
+    - **Validates: Requirements 1.4, 2.4, 3.3, 8.5**
+  - [ ] 4.5 Implement presigned URL generation
+    - Generate presigned download URL with 15-minute expiration
+    - Verify ownership before generating URL
+    - _Requirements: 8.3, 8.4_
+  - [ ] 4.6 Write property test for presigned URL expiration
+    - **Property 13: Presigned URL Expiration**
+    - Generate presigned URLs
+    - Verify expiration is exactly 15 minutes
+    - **Validates: Requirements 8.3**
+  - [ ] 4.7 Implement file deletion from S3
+    - Delete object by key
+    - Handle non-existent objects gracefully
+    - _Requirements: 9.2_
+
+- [ ] 5. Checkpoint - Ensure storage tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 6. Implement document repository and service
+  - [ ] 6.1 Create DocumentRepository with Prisma
+    - Implement create, findById, findByBusinessId methods
+    - Implement updateStatus, delete methods
+    - Add pagination support for listing
+    - _Requirements: 7.1, 7.4_
+  - [ ] 6.2 Create DocumentService with business logic
+    - Implement createDocument with metadata population
+    - Implement getDocumentById with ownership check
+    - Implement listDocuments with pagination and filtering
+    - Implement deleteDocument with ownership verification
+    - _Requirements: 7.1, 7.2, 7.3, 9.1_
+  - [ ] 6.3 Write property test for business isolation
+    - **Property 9: Document Listing Business Isolation**
+    - Generate documents for multiple businesses
+    - Verify listing returns only documents for requesting business
+    - **Validates: Requirements 7.1**
+  - [ ] 6.4 Write property test for pagination
+    - **Property 10: Pagination Correctness**
+    - Generate large document sets
+    - Verify pagination returns correct pages without overlap
+    - Verify complete pagination covers all documents
+    - **Validates: Requirements 7.4**
+  - [ ] 6.5 Write property test for default sort order
+    - **Property 11: Default Sort Order**
+    - Generate documents with various upload times
+    - Verify default listing is sorted by uploadedAt descending
+    - **Validates: Requirements 7.5**
+  - [ ] 6.6 Write property test for ownership enforcement
+    - **Property 12: Ownership Enforcement**
+    - Generate cross-business access attempts
+    - Verify 403 responses for non-owners
+    - **Validates: Requirements 8.4, 9.1, 9.5**
+
+- [ ] 7. Implement document status state machine
+  - [ ] 7.1 Create status transition validation
+    - Define valid transitions: UPLOADED→PROCESSING, PROCESSING→PARSED/PARTIAL/ERROR, ERROR→PROCESSING
+    - Reject invalid transitions with clear error
+    - _Requirements: 5.2, 5.3, 5.4, 5.5, 5.6, 6.3_
+  - [ ] 7.2 Write property test for status state machine
+    - **Property 6: Document Status State Machine**
+    - Generate random status transition sequences
+    - Verify only valid transitions are allowed
+    - Verify initial status is always UPLOADED
+    - **Validates: Requirements 5.2, 5.3, 5.4, 5.5, 5.6, 6.3**
+
+- [ ] 8. Checkpoint - Ensure document service tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 9. Implement upload service and controller
+  - [ ] 9.1 Create UploadService
+    - Orchestrate file validation (type and size)
+    - Call StorageService for S3 upload
+    - Create document record in database
+    - Queue processing job
+    - Return document with UPLOADED status
+    - _Requirements: 1.4, 1.5, 5.2, 11.1_
+  - [ ] 9.2 Write property test for upload metadata completeness
+    - **Property 15: Upload Metadata Completeness**
+    - Generate uploads with various file types
+    - Verify all required fields are populated
+    - **Validates: Requirements 10.1, 10.4, 10.5**
+  - [ ] 9.3 Write property test for async upload response
+    - **Property 18: Async Upload Response**
+    - Generate uploads
+    - Verify response returns before processing completes
+    - Verify document status is UPLOADED in response
+    - **Validates: Requirements 11.1, 11.4**
+  - [ ] 9.4 Create DocumentController with upload endpoint
+    - POST /api/documents/upload - handle multipart form data
+    - Validate file types and sizes
+    - Return created documents with requestId
+    - _Requirements: 1.6, 2.5, 3.4, 12.1, 12.4_
+  - [ ] 9.5 Implement batch upload support
+    - Accept multiple files in single request
+    - Validate total batch size
+    - Create documents for all valid files
+    - _Requirements: 4.2, 4.4_
+
+- [ ] 10. Implement remaining controller endpoints
+  - [ ] 10.1 Implement GET /api/documents endpoint
+    - List documents for user's business
+    - Support pagination query params (page, pageSize)
+    - Support filtering by status and type
+    - Return documents with pagination info
+    - _Requirements: 7.1, 7.2, 7.4, 7.5_
+  - [ ] 10.2 Implement GET /api/documents/:id endpoint
+    - Get document details with ownership check
+    - Return complete document metadata
+    - _Requirements: 7.3, 8.4_
+  - [ ] 10.3 Implement POST /api/documents/:id/retry endpoint
+    - Verify document has ERROR status
+    - Reset status to PROCESSING
+    - Re-queue processing job with idempotency key
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [ ] 10.4 Implement DELETE /api/documents/:id endpoint
+    - Verify ownership
+    - Delete from S3 storage
+    - Delete document record from database
+    - _Requirements: 9.1, 9.2, 9.3, 9.4_
+  - [ ] 10.5 Write property test for deletion cascade
+    - **Property 14: Document Deletion Cascade**
+    - Generate documents with extracted transactions
+    - Delete documents
+    - Verify S3 object removed, DB record removed, transactions remain
+    - **Validates: Requirements 9.2, 9.3, 9.4**
+  - [ ] 10.6 Implement GET /api/documents/:id/download endpoint
+    - Verify ownership
+    - Generate presigned URL
+    - Return URL with expiration timestamp
+    - _Requirements: 8.3, 8.4_
+
+- [ ] 11. Checkpoint - Ensure controller tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 12. Implement processing queue and worker
+  - [ ] 12.1 Set up Bull/BullMQ queue configuration
+    - Configure Redis connection
+    - Create document processing queue
+    - Set up job options (attempts, backoff)
+    - _Requirements: 11.2_
+  - [ ] 12.2 Create ProcessingWorker
+    - Listen for processing jobs
+    - Update document status to PROCESSING
+    - Call ProcessingService for extraction
+    - Update document status based on result
+    - _Requirements: 5.3, 5.4, 5.5, 5.6_
+  - [ ] 12.3 Implement retry logic with exponential backoff
+    - Configure 3 max attempts
+    - Implement exponential backoff delays
+    - Mark document as ERROR after all retries exhausted
+    - _Requirements: 11.5, 11.6_
+  - [ ] 12.4 Write property test for retry behavior
+    - **Property 17: Retry Behavior with Exponential Backoff**
+    - Generate failing jobs
+    - Verify retry count and backoff timing
+    - Verify ERROR status after 3 failures
+    - **Validates: Requirements 11.5, 11.6**
+
+- [ ] 13. Implement processing service with Gemini AI
+  - [ ] 13.1 Create ProcessingService
+    - Implement processDocument method
+    - Download file from S3
+    - Route to appropriate extraction method by document type
+    - Update document with processing results
+    - _Requirements: 10.2, 10.3, 11.3_
+  - [ ] 13.2 Implement receipt image extraction
+    - Call Gemini AI with receipt image
+    - Parse extracted transaction data
+    - Return extraction result with transactions
+    - _Requirements: 1.1_
+  - [ ] 13.3 Implement bank statement extraction
+    - Call Gemini AI with PDF content
+    - Parse extracted transactions for Nigerian banks
+    - Return extraction result with transactions
+    - _Requirements: 2.3_
+  - [ ] 13.4 Implement POS export extraction
+    - Parse CSV content
+    - Map columns to transaction fields
+    - Return extraction result with transactions
+    - _Requirements: 3.1_
+  - [ ] 13.5 Implement idempotent retry processing
+    - Generate idempotency key for retry operations
+    - Check for existing transactions with same key
+    - Skip duplicate transaction creation
+    - _Requirements: 6.4_
+  - [ ] 13.6 Write property test for idempotent retry
+    - **Property 7: Idempotent Retry Processing**
+    - Generate retry operations with same idempotency key
+    - Verify no duplicate transactions created
+    - **Validates: Requirements 6.4**
+  - [ ] 13.7 Write property test for processing metadata
+    - **Property 16: Processing Metadata Completeness**
+    - Generate processed documents
+    - Verify processingStartedAt, processingCompletedAt, processingDurationMs populated
+    - Verify transactionsExtracted is non-negative for PARSED/PARTIAL
+    - **Validates: Requirements 10.2, 10.3**
+
+- [ ] 14. Checkpoint - Ensure processing tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 15. Implement API response consistency and error handling
+  - [ ] 15.1 Create error response middleware
+    - Catch all errors and format consistently
+    - Include error code, message, and requestId
+    - Map errors to appropriate HTTP status codes
+    - _Requirements: 12.1, 12.2, 12.3, 12.4_
+  - [ ] 15.2 Create request correlation ID middleware
+    - Generate UUID for each request
+    - Attach to request context
+    - Include in all responses
+    - _Requirements: 12.4_
+  - [ ] 15.3 Write property test for API response consistency
+    - **Property 19: API Response Consistency**
+    - Generate various API calls (success and error)
+    - Verify JSON structure matches spec
+    - Verify HTTP status codes match response types
+    - **Validates: Requirements 1.6, 2.5, 3.4, 12.1, 12.2, 12.3, 12.4**
+  - [ ] 15.4 Write property test for listing field completeness
+    - **Property 20: Document Listing Field Completeness**
+    - Generate document listings
+    - Verify all required fields present in each document
+    - **Validates: Requirements 7.2, 7.3**
+
+- [ ] 16. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- All tasks including property tests are required for comprehensive coverage
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation
+- Property tests validate universal correctness properties
+- Unit tests validate specific examples and edge cases
+- Module depends on core-auth for user context and business-management for business context

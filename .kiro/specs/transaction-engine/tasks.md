@@ -1,0 +1,282 @@
+# Implementation Plan: Transaction Engine Module
+
+## Overview
+
+This implementation plan breaks down the transaction-engine module into discrete coding tasks. The module handles transaction normalization, categorization, storage, and retrieval for CashTrace. Implementation uses TypeScript with Prisma ORM and PostgreSQL.
+
+## Tasks
+
+- [ ] 1. Set up project structure and database schema
+  - [ ] 1.1 Create Prisma schema for transactions, audits, and duplicate pairs
+    - Add enums: SourceType, TransactionType, CategorySource, TransactionCategory, DuplicateStatus, AuditAction
+    - Add Transaction model with all fields including searchVector
+    - Add TransactionAudit model
+    - Add DuplicatePair model
+    - _Requirements: 1.1, 1.2, 2.2, 2.3, 10.1_
+  - [ ] 1.2 Create database migration with full-text search setup
+    - Generate Prisma migration
+    - Add PostgreSQL trigger for search vector updates
+    - Add indexes for performance
+    - _Requirements: 6.2_
+  - [ ] 1.3 Create TypeScript interfaces and types
+    - Define all request/response types
+    - Define service interfaces
+    - Define category constants with keywords
+    - _Requirements: 2.2, 2.3, 12.1_
+
+- [ ] 2. Implement NormalizationService
+  - [ ] 2.1 Implement kobo conversion functions
+    - nairaToKobo: multiply by 100, round to integer
+    - koboToNaira: divide by 100
+    - formatAsNaira: format with ₦ symbol and commas
+    - _Requirements: 1.2, 12.5_
+  - [ ] 2.2 Write property test for kobo conversion round-trip
+    - **Property 1: Kobo Conversion Round-Trip**
+    - **Validates: Requirements 1.2**
+  - [ ] 2.3 Implement transaction normalization logic
+    - normalize: convert raw extracted data to normalized format
+    - determineTransactionType: map credit/debit to INFLOW/OUTFLOW
+    - extractCounterparty: parse counterparty from description
+    - normalizeBatch: process multiple transactions
+    - _Requirements: 1.1, 1.3, 1.4, 1.5, 1.6, 1.7_
+  - [ ] 2.4 Write property tests for normalization
+    - **Property 2: Normalization Completeness**
+    - **Property 3: Transaction Type Determination**
+    - **Validates: Requirements 1.1, 1.3, 1.4, 1.5, 1.6, 1.7**
+
+- [ ] 3. Checkpoint - Verify normalization
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Implement CategorizationService
+  - [ ] 4.1 Implement category keyword matching
+    - Define keyword maps for all Nigerian SME categories
+    - Implement keyword-based scoring algorithm
+    - Calculate confidence based on match strength
+    - _Requirements: 2.1, 2.2, 2.3_
+  - [ ] 4.2 Implement categorization logic
+    - categorize: assign category with confidence score
+    - getSuggestions: return top category matches
+    - validateCategory: check against predefined list
+    - getCategoriesForType: return valid categories for INFLOW/OUTFLOW
+    - Handle default assignment for low confidence
+    - _Requirements: 2.1, 2.4, 2.5, 2.6, 3.1_
+  - [ ] 4.3 Write property tests for categorization
+    - **Property 4: Categorization Completeness**
+    - **Property 5: Default Category Assignment**
+    - **Property 6: Category Validation**
+    - **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.1, 3.2, 3.3**
+
+- [ ] 5. Implement TransactionRepository
+  - [ ] 5.1 Implement basic CRUD operations
+    - create: insert single transaction
+    - findById: get transaction by ID
+    - findByBusinessId: list transactions for business
+    - update: update transaction fields
+    - softDelete: set deletedAt timestamp
+    - _Requirements: 1.1, 7.1, 10.1, 11.1_
+  - [ ] 5.2 Implement bulk operations
+    - bulkCreate: batch insert with transaction
+    - Ensure atomicity with database transactions
+    - _Requirements: 8.2, 8.3, 8.5_
+  - [ ] 5.3 Implement filtering and pagination
+    - Apply date range, amount range, category, source, type filters
+    - Implement cursor-based pagination
+    - Implement default sort by transactionDate DESC
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8_
+  - [ ] 5.4 Write property tests for repository
+    - **Property 10: Filter Correctness**
+    - **Property 11: Pagination Correctness**
+    - **Property 12: Default Sort Order**
+    - **Validates: Requirements 5.1-5.8**
+
+- [ ] 6. Checkpoint - Verify repository operations
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Implement SearchService
+  - [ ] 7.1 Implement full-text search
+    - buildSearchVector: create tsvector from description and counterparty
+    - search: query using PostgreSQL full-text search
+    - Support partial word matching with prefix search
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [ ] 7.2 Implement search ranking and filtering
+    - rankResults: order by relevance score
+    - Combine search with transaction filters
+    - _Requirements: 6.4, 6.5_
+  - [ ] 7.3 Write property tests for search
+    - **Property 13: Search Field Coverage**
+    - **Property 14: Search and Filter Combination**
+    - **Validates: Requirements 6.1, 6.3, 6.5**
+
+- [ ] 8. Implement DuplicateDetectionService
+  - [ ] 8.1 Implement similarity calculation
+    - calculateSimilarity: compute overall similarity score
+    - Check amount equality
+    - Calculate date proximity (days apart)
+    - Calculate description similarity using Levenshtein or similar
+    - _Requirements: 9.1, 9.6_
+  - [ ] 8.2 Implement duplicate detection logic
+    - detectDuplicates: find potential duplicates for new transactions
+    - Apply threshold: same amount, within 3 days, >70% description similarity
+    - Create DuplicatePair records for matches
+    - Flag both transactions as isDuplicate
+    - _Requirements: 9.1, 9.2, 9.6_
+  - [ ] 8.3 Implement duplicate resolution
+    - getUnresolvedDuplicates: list pending duplicate pairs
+    - markAsReviewed: mark pair as not duplicates
+    - resolveDuplicate: soft-delete one, link to retained
+    - _Requirements: 9.3, 9.4, 9.5_
+  - [ ] 8.4 Write property tests for duplicate detection
+    - **Property 18: Duplicate Detection Criteria**
+    - **Property 19: Duplicate Flagging Symmetry**
+    - **Property 20: Duplicate Resolution Correctness**
+    - **Validates: Requirements 9.1, 9.2, 9.4, 9.5, 9.6**
+
+- [ ] 9. Implement AuditService
+  - [ ] 9.1 Implement audit logging
+    - logCreate: record transaction creation
+    - logUpdate: record changes with previous/new values
+    - logDelete: record soft deletion
+    - logCategoryChange: record category updates
+    - logDuplicateResolve: record duplicate resolution
+    - _Requirements: 3.4, 4.5, 10.4, 11.3_
+  - [ ] 9.2 Implement audit retrieval
+    - getAuditHistory: get audit trail for transaction
+    - _Requirements: 7.4_
+  - [ ] 9.3 Write property test for audit completeness
+    - **Property 23: Audit Trail Completeness**
+    - **Validates: Requirements 3.4, 4.5, 10.4, 11.3**
+
+- [ ] 10. Checkpoint - Verify services
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 11. Implement TransactionService
+  - [ ] 11.1 Implement ownership verification
+    - verifyOwnership: check user's business owns transaction
+    - Integrate with business-management module
+    - _Requirements: 3.5, 7.5, 10.5, 11.5_
+  - [ ] 11.2 Write property test for ownership enforcement
+    - **Property 7: Ownership Enforcement**
+    - **Validates: Requirements 3.5, 7.5, 10.5, 11.5**
+  - [ ] 11.3 Implement transaction creation
+    - createTransaction: normalize, categorize, save, detect duplicates
+    - Set default isPersonal to false
+    - Log creation in audit trail
+    - _Requirements: 1.1, 2.1, 4.2_
+  - [ ] 11.4 Write property test for default values
+    - **Property 8: Default Personal Flag**
+    - **Validates: Requirements 4.2**
+  - [ ] 11.5 Implement bulk creation
+    - bulkCreate: process batch with atomicity
+    - Normalize and categorize all transactions
+    - Run duplicate detection on new transactions
+    - Return count and created transactions
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.6_
+  - [ ] 11.6 Write property tests for bulk operations
+    - **Property 16: Bulk Creation Atomicity**
+    - **Property 17: Bulk Creation Count Accuracy**
+    - **Validates: Requirements 8.2, 8.3, 8.4, 8.6**
+  - [ ] 11.7 Implement transaction retrieval
+    - getTransactionById: get with ownership check
+    - listTransactions: list with filters and pagination
+    - Include audit history in details
+    - _Requirements: 7.1, 7.2, 7.3, 7.4_
+  - [ ] 11.8 Write property test for details completeness
+    - **Property 15: Transaction Details Completeness**
+    - **Validates: Requirements 7.1, 7.2, 7.3, 7.4**
+  - [ ] 11.9 Implement transaction update
+    - updateTransaction: update allowed fields only
+    - Protect immutable fields (amount, sourceType, etc.)
+    - Update category source to MANUAL on category change
+    - Preserve original category
+    - Update updatedAt timestamp
+    - Log changes in audit trail
+    - _Requirements: 3.2, 3.3, 11.1, 11.2, 11.3, 11.4_
+  - [ ] 11.10 Write property tests for updates
+    - **Property 22: Immutable Fields Protection**
+    - **Property 24: Updated Timestamp Invariant**
+    - **Validates: Requirements 11.2, 11.4**
+  - [ ] 11.11 Implement soft delete
+    - deleteTransaction: set deletedAt, log audit
+    - Ensure deleted transactions excluded from listings
+    - _Requirements: 10.1, 10.2, 10.3, 10.4_
+  - [ ] 11.12 Write property test for soft delete
+    - **Property 21: Soft Delete Behavior**
+    - **Validates: Requirements 10.1, 10.2, 10.3**
+  - [ ] 11.13 Implement personal transaction handling
+    - Support isPersonal flag updates
+    - Implement business totals calculation excluding personal
+    - _Requirements: 4.1, 4.3, 4.4_
+  - [ ] 11.14 Write property test for personal exclusion
+    - **Property 9: Personal Transaction Exclusion**
+    - **Validates: Requirements 4.4**
+
+- [ ] 12. Checkpoint - Verify transaction service
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 13. Implement TransactionController and API endpoints
+  - [ ] 13.1 Implement GET /api/transactions endpoint
+    - Parse and validate query parameters
+    - Apply filters and pagination
+    - Format response with kobo and Naira amounts
+    - _Requirements: 5.1-5.8, 12.1, 12.5_
+  - [ ] 13.2 Implement GET /api/transactions/:id endpoint
+    - Validate transaction ID
+    - Check ownership
+    - Return full transaction details with audit history
+    - _Requirements: 7.1-7.6, 12.1_
+  - [ ] 13.3 Implement PUT /api/transactions/:id endpoint
+    - Validate update payload
+    - Check ownership
+    - Apply updates and return updated transaction
+    - _Requirements: 3.1-3.5, 4.1, 11.1-11.5, 12.1_
+  - [ ] 13.4 Implement POST /api/transactions/bulk endpoint
+    - Validate bulk request payload
+    - Process with atomicity
+    - Return created count and transactions
+    - _Requirements: 8.1-8.7, 12.1_
+  - [ ] 13.5 Implement GET /api/transactions/search endpoint
+    - Parse search query and filters
+    - Execute full-text search
+    - Return ranked results
+    - _Requirements: 6.1-6.6, 12.1_
+  - [ ] 13.6 Implement GET /api/transactions/duplicates endpoint
+    - List unresolved duplicate pairs
+    - Support pagination
+    - _Requirements: 9.3, 12.1_
+  - [ ] 13.7 Implement POST /api/transactions/duplicates/:id/resolve endpoint
+    - Validate resolution action
+    - Execute resolution
+    - _Requirements: 9.4, 9.5, 12.1_
+  - [ ] 13.8 Implement DELETE /api/transactions/:id endpoint
+    - Check ownership
+    - Perform soft delete
+    - _Requirements: 10.1-10.5, 12.1_
+  - [ ] 13.9 Write property test for API response consistency
+    - **Property 25: API Response Consistency**
+    - **Validates: Requirements 12.1, 12.2, 12.3, 12.4, 12.5**
+
+- [ ] 14. Implement error handling
+  - [ ] 14.1 Create error classes and codes
+    - Define all error codes from design
+    - Create custom error classes
+    - Implement error response formatter
+    - _Requirements: 12.2, 12.3_
+  - [ ] 14.2 Add error handling middleware
+    - Catch and format all errors consistently
+    - Include request correlation IDs
+    - Log errors appropriately
+    - _Requirements: 12.4_
+
+- [ ] 15. Final checkpoint - Complete integration testing
+  - Ensure all tests pass, ask the user if questions arise.
+  - Verify integration with core-auth, business-management, and document-processing modules
+
+## Notes
+
+- All tasks including property tests are required for comprehensive coverage
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation
+- Property tests validate universal correctness properties
+- Unit tests validate specific examples and edge cases
+- All amounts are stored in kobo (integer) to avoid floating-point issues
+- Full-text search uses PostgreSQL native capabilities
