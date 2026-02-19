@@ -1,5 +1,30 @@
+# Kiro
+.kiro/
+
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Environment
 .env
-*.log
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
 coverage/
+
+# Logs
+*.log
+npm-debug.log*
