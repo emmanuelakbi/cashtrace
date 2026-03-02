@@ -6,6 +6,7 @@ node_modules/
 
 # Build output
 dist/
+.next/
 
 # Environment
 .env
@@ -28,3 +29,6 @@ coverage/
 # Logs
 *.log
 npm-debug.log*
+
+# Temp files
+/tmp/

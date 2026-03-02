@@ -1,0 +1,11 @@
+Date,Description,Amount,Type,Reference
+2026-03-01,Payment from Dangote Cement Ltd,450000.00,Credit,TRF/DNG/2026/0301
+2026-03-01,Office Rent - Victoria Island,350000.00,Debit,RENT/VI/MAR2026
+2026-03-02,Shoprite Supply Chain Payment,280000.00,Credit,TRF/SHP/2026/0302
+2026-03-02,Staff Salaries February 2026,890000.00,Debit,SAL/FEB/2026
+2026-02-28,POS Sales Lekki Branch,125000.00,Credit,POS/LKI/20260228
+2026-02-28,GIG Logistics Delivery,45000.00,Debit,GIG/DEL/20260228
+2026-02-27,MTN Nigeria Contract Payment,1200000.00,Credit,TRF/MTN/2026/0227
+2026-02-27,Generator Maintenance - Mikano,78000.00,Debit,INV/MIK/2026/0227
+2026-02-26,Airtel Bulk SMS Service,15000.00,Debit,AIR/SMS/20260226
+2026-02-25,Lagos State Revenue - Tax Refund,92000.00,Credit,LIRS/REF/2026/0225

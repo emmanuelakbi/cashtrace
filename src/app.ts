@@ -17,6 +17,7 @@
 
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import cors from 'cors';
 import type { Request, Response, NextFunction } from 'express';
 import type { Redis } from 'ioredis';
 
@@ -50,6 +51,10 @@ import {
   logoutAll,
 } from './controllers/authController.js';
 
+import { businessRouter } from './modules/business/routes.js';
+import type { NotificationControllerDeps } from './notifications/controllers/index.js';
+import { createNotificationController } from './notifications/controllers/index.js';
+
 // ─── Dependency Types ────────────────────────────────────────────────────────
 
 /** All dependencies required to create the Express application. */
@@ -80,6 +85,9 @@ export interface AppDependencies {
 
   /** Dependencies for the logout-all controller. */
   logoutAll: LogoutAllDependencies;
+
+  /** Dependencies for the notification controller. */
+  notifications?: NotificationControllerDeps;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -143,6 +151,14 @@ export function createApp(deps: AppDependencies): express.Express {
 
   // ── Global Middleware (order matters) ──────────────────────────────────
 
+  // 0. CORS
+  app.use(
+    cors({
+      origin: process.env['APP_BASE_URL'] ?? 'http://localhost:3000',
+      credentials: true,
+    }),
+  );
+
   // 1. JSON body parser
   app.use(express.json());
 
@@ -150,7 +166,13 @@ export function createApp(deps: AppDependencies): express.Express {
   app.use(cookieParser());
 
   // 3. CSRF protection (double-submit cookie pattern)
-  app.use(csrfProtection() as express.RequestHandler);
+  const isDev = process.env['NODE_ENV'] !== 'production';
+  app.use(
+    csrfProtection({
+      secure: !isDev,
+      sameSite: isDev ? 'lax' : 'strict',
+    }) as express.RequestHandler,
+  );
 
   // ── Auth Routes ───────────────────────────────────────────────────────
 
@@ -277,6 +299,14 @@ export function createApp(deps: AppDependencies): express.Express {
 
   // Mount auth routes under /api/auth
   app.use('/api/auth', router);
+
+  // ── Business Routes ─────────────────────────────────────────────────
+  app.use('/api/business', businessRouter);
+
+  // ── Notification Routes ───────────────────────────────────────────────
+  if (deps.notifications) {
+    app.use('/api/notifications', createNotificationController(deps.notifications));
+  }
 
   // ── Global Error Handler ──────────────────────────────────────────────
 

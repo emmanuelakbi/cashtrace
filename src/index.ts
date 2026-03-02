@@ -96,3 +96,9 @@ export {
   VendorManager,
   SecurityAssessor,
 } from './security/index.js';
+
+// ─── API Gateway Module ───
+export * from './gateway/index.js';
+
+// ─── Deployment Infrastructure Module ───
+export * from './deployment/index.js';

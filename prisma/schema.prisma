@@ -1,0 +1,226 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DocumentType {
+  RECEIPT_IMAGE
+  BANK_STATEMENT
+  POS_EXPORT
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  PARSED
+  PARTIAL
+  ERROR
+}
+
+enum JobStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+model Document {
+  id                    String         @id @default(uuid())
+  businessId            String         @map("business_id")
+  userId                String         @map("user_id")
+  filename              String         @db.VarChar(255)
+  originalFilename      String         @map("original_filename") @db.VarChar(255)
+  documentType          DocumentType   @map("document_type")
+  mimeType              String         @map("mime_type") @db.VarChar(100)
+  fileSize              Int            @map("file_size")
+  s3Key                 String         @map("s3_key") @db.VarChar(500)
+  s3Bucket              String         @map("s3_bucket") @db.VarChar(100)
+  status                DocumentStatus @default(UPLOADED)
+  processingStartedAt   DateTime?      @map("processing_started_at")
+  processingCompletedAt DateTime?      @map("processing_completed_at")
+  processingDurationMs  Int?           @map("processing_duration_ms")
+  transactionsExtracted Int?           @map("transactions_extracted")
+  processingWarnings    String[]       @default([]) @map("processing_warnings")
+  processingErrors      String[]       @default([]) @map("processing_errors")
+  idempotencyKey        String?        @map("idempotency_key") @db.VarChar(64)
+  uploadedAt            DateTime       @default(now()) @map("uploaded_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  processingJobs ProcessingJob[]
+
+  @@index([businessId])
+  @@index([userId])
+  @@index([status])
+  @@index([uploadedAt(sort: Desc)])
+  @@index([idempotencyKey])
+  @@map("documents")
+}
+
+model ProcessingJob {
+  id          String    @id @default(uuid())
+  documentId  String    @map("document_id")
+  status      JobStatus @default(PENDING)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3) @map("max_attempts")
+  lastError   String?   @map("last_error")
+  nextRetryAt DateTime? @map("next_retry_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([status])
+  @@index([nextRetryAt])
+  @@map("processing_jobs")
+}
+
+// ─── Transaction Engine Enums ───────────────────────────────────────────────
+
+enum SourceType {
+  RECEIPT
+  BANK_STATEMENT
+  POS_EXPORT
+  MANUAL
+}
+
+enum TransactionType {
+  INFLOW
+  OUTFLOW
+}
+
+enum CategorySource {
+  AUTO
+  MANUAL
+}
+
+enum TransactionCategory {
+  INVENTORY_STOCK
+  RENT_UTILITIES
+  SALARIES_WAGES
+  TRANSPORTATION_LOGISTICS
+  MARKETING_ADVERTISING
+  PROFESSIONAL_SERVICES
+  EQUIPMENT_MAINTENANCE
+  BANK_CHARGES_FEES
+  TAXES_LEVIES
+  MISCELLANEOUS_EXPENSES
+  PRODUCT_SALES
+  SERVICE_REVENUE
+  OTHER_INCOME
+}
+
+enum DuplicateStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  CATEGORIZE
+  DUPLICATE_RESOLVE
+}
+
+// ─── Transaction Engine Models ──────────────────────────────────────────────
+
+model Transaction {
+  id               String          @id @default(uuid())
+  businessId       String          @map("business_id")
+  sourceDocumentId String?         @map("source_document_id")
+  sourceType       SourceType      @map("source_type")
+  transactionType  TransactionType @map("transaction_type")
+  transactionDate  DateTime        @map("transaction_date") @db.Date
+  description      String          @db.Text
+  amountKobo       BigInt          @map("amount_kobo")
+  counterparty     String?         @db.VarChar(255)
+  reference        String?         @db.VarChar(255)
+
+  category           TransactionCategory
+  categorySource     CategorySource       @default(AUTO) @map("category_source")
+  categoryConfidence Int?                 @map("category_confidence") @db.SmallInt
+  originalCategory   TransactionCategory? @map("original_category")
+
+  isPersonal    Boolean @default(false) @map("is_personal")
+  isDuplicate   Boolean @default(false) @map("is_duplicate")
+  duplicateOfId String? @map("duplicate_of_id")
+
+  notes        String?                  @db.Text
+  rawMetadata  Json                     @default("{}") @map("raw_metadata")
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  audits          TransactionAudit[]
+  duplicatePairs1 DuplicatePair[]    @relation("Transaction1")
+  duplicatePairs2 DuplicatePair[]    @relation("Transaction2")
+  duplicateOf     Transaction?       @relation("DuplicateOf", fields: [duplicateOfId], references: [id])
+  duplicates      Transaction[]      @relation("DuplicateOf")
+
+  @@index([businessId])
+  @@index([sourceDocumentId])
+  @@index([transactionDate(sort: Desc)])
+  @@index([transactionType])
+  @@index([category])
+  @@index([sourceType])
+  @@index([isPersonal])
+  @@index([isDuplicate])
+  @@index([amountKobo])
+  @@map("transactions")
+}
+
+model TransactionAudit {
+  id            String      @id @default(uuid())
+  transactionId String      @map("transaction_id")
+  userId        String      @map("user_id")
+  action        AuditAction
+  changes       Json        @default("[]")
+  ipAddress     String      @map("ip_address")
+  userAgent     String?     @map("user_agent")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("transaction_audits")
+}
+
+model DuplicatePair {
+  id                    String          @id @default(uuid())
+  businessId            String          @map("business_id")
+  transaction1Id        String          @map("transaction1_id")
+  transaction2Id        String          @map("transaction2_id")
+  similarityScore       Int             @map("similarity_score") @db.SmallInt
+  amountMatch           Boolean         @map("amount_match")
+  dateProximity         Int             @map("date_proximity") @db.SmallInt
+  descriptionSimilarity Int             @map("description_similarity") @db.SmallInt
+  status                DuplicateStatus @default(PENDING)
+  resolvedBy            String?         @map("resolved_by")
+  resolvedAt            DateTime?       @map("resolved_at")
+  keptTransactionId     String?         @map("kept_transaction_id")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  transaction1 Transaction @relation("Transaction1", fields: [transaction1Id], references: [id])
+  transaction2 Transaction @relation("Transaction2", fields: [transaction2Id], references: [id])
+
+  @@index([businessId])
+  @@index([status])
+  @@index([transaction1Id, transaction2Id])
+  @@map("duplicate_pairs")
+}

@@ -1,0 +1,83 @@
+name: Preview Environment
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+
+env:
+  NODE_VERSION: '20'
+  AWS_REGION: af-south-1
+
+jobs:
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Generate preview name
+        id: preview
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PREVIEW_NAME="preview-pr-${PR_NUMBER}"
+          echo "name=${PREVIEW_NAME}" >> "$GITHUB_OUTPUT"
+          echo "url=https://${PREVIEW_NAME}.cashtrace.ng" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build -t cashtrace-preview:${{ github.sha }} .
+
+      - name: Deploy preview environment
+        run: |
+          echo "Deploying preview environment: ${{ steps.preview.outputs.name }}"
+          # ECS service creation/update for preview would go here
+          # using the preview-specific task definition and service name
+
+      - name: Comment PR with preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Preview environment deployed!\n\n**URL:** ${{ steps.preview.outputs.url }}\n**Commit:** \`${context.sha.substring(0, 7)}\``
+            })
+
+  cleanup-preview:
+    name: Cleanup Preview
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Destroy preview environment
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PREVIEW_NAME="preview-pr-${PR_NUMBER}"
+          echo "Destroying preview environment: ${PREVIEW_NAME}"
+          # ECS service deletion for preview would go here

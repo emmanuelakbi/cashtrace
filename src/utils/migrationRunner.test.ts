@@ -19,13 +19,16 @@ describe('migrationRunner', () => {
     it('should find all SQL migration files', () => {
       const files = getMigrationFiles(MIGRATIONS_DIR);
 
-      expect(files.length).toBe(6);
+      expect(files.length).toBe(9);
       expect(files).toContain('001_create_users.sql');
       expect(files).toContain('002_create_refresh_tokens.sql');
       expect(files).toContain('003_create_magic_link_tokens.sql');
       expect(files).toContain('004_create_password_reset_tokens.sql');
       expect(files).toContain('005_create_consent_records.sql');
       expect(files).toContain('006_create_audit_logs.sql');
+      expect(files).toContain('007_create_business_tables.sql');
+      expect(files).toContain('008_create_document_processing_tables.sql');
+      expect(files).toContain('009_create_transaction_engine_tables.sql');
     });
 
     it('should return files in sorted order', () => {
@@ -37,6 +40,9 @@ describe('migrationRunner', () => {
       expect(files[3]).toBe('004_create_password_reset_tokens.sql');
       expect(files[4]).toBe('005_create_consent_records.sql');
       expect(files[5]).toBe('006_create_audit_logs.sql');
+      expect(files[6]).toBe('007_create_business_tables.sql');
+      expect(files[7]).toBe('008_create_document_processing_tables.sql');
+      expect(files[8]).toBe('009_create_transaction_engine_tables.sql');
     });
 
     it('should return empty array for non-existent directory', () => {

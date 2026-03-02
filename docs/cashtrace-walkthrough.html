@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CashTrace — Project Walkthrough</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 60px 48px;
+    }
+
+    /* Cover page */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(160deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%);
+      color: #fff;
+      padding: 80px 48px;
+      page-break-after: always;
+    }
+
+    .cover-logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      font-weight: 700;
+      font-family: 'Playfair Display', Georgia, serif;
+      margin-bottom: 24px;
+    }
+
+    .cover h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+
+    .cover .subtitle {
+      font-size: 1.2rem;
+      font-weight: 300;
+      opacity: 0.85;
+      max-width: 500px;
+      margin-bottom: 40px;
+    }
+
+    .cover .meta {
+      font-size: 0.85rem;
+      opacity: 0.6;
+      line-height: 1.8;
+    }
+
+    .cover .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.15);
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 32px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Section headers */
+    h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 48px 0 16px 0;
+      letter-spacing: -0.02em;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #0d9488;
+      display: inline-block;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin: 28px 0 10px 0;
+    }
+
+    h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #334155;
+      margin: 20px 0 8px 0;
+    }
+
+    p {
+      margin-bottom: 12px;
+      color: #475569;
+    }
+
+    /* Screenshot placeholder */
+    .screenshot {
+      width: 100%;
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin: 16px 0 24px 0;
+      background: #f8fafc;
+    }
+
+    .screenshot .label {
+      font-weight: 600;
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    .screenshot .hint {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    /* Feature list */
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0 24px 0;
+    }
+
+    .feature {
+      padding: 14px 16px;
+      background: #f0fdfa;
+      border-radius: 8px;
+      border-left: 3px solid #0d9488;
+    }
+
+    .feature .ft {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .feature .fd {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    /* Tech stack table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 24px 0;
+      font-size: 0.85rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #475569;
+    }
+
+    /* Code block */
+    .code {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      margin: 12px 0 20px 0;
+      overflow-x: auto;
+    }
+
+    /* Callout */
+    .callout {
+      padding: 16px 20px;
+      background: #f0fdfa;
+      border-left: 3px solid #0d9488;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0 20px 0;
+    }
+
+    .callout strong {
+      color: #0f766e;
+    }
+
+    /* Flow diagram */
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 20px 0 28px 0;
+      flex-wrap: wrap;
+    }
+
+    .flow-step {
+      padding: 10px 16px;
+      background: #0d9488;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .flow-arrow {
+      color: #94a3b8;
+      font-size: 1.2rem;
+    }
+
+    /* Page break */
+    .page-break {
+      page-break-before: always;
+    }
+
+    /* Numbered steps */
+    .steps {
+      counter-reset: step;
+      margin: 16px 0 24px 0;
+    }
+
+    .step {
+      counter-increment: step;
+      padding: 12px 16px 12px 52px;
+      position: relative;
+      margin-bottom: 8px;
+      background: #fafafa;
+      border-radius: 8px;
+    }
+
+    .step::before {
+      content: counter(step);
+      position: absolute;
+      left: 16px;
+      top: 12px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #0d9488;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .step strong {
+      color: #0f172a;
+    }
+
+    ul {
+      margin: 8px 0 16px 20px;
+    }
+
+    li {
+      margin-bottom: 6px;
+      color: #475569;
+    }
+
+    .toc {
+      margin: 20px 0 40px 0;
+    }
+
+    .toc a {
+      display: block;
+      padding: 8px 0;
+      color: #0d9488;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .toc a:hover {
+      color: #0f766e;
+    }
+
+    .toc .num {
+      color: #94a3b8;
+      margin-right: 8px;
+      font-weight: 400;
+    }
+
+    @media print {
+      .page {
+        padding: 40px 36px;
+      }
+
+      .cover {
+        min-height: auto;
+        padding: 60px 36px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════ COVER PAGE ═══════════════════ -->
+  <div class="cover">
+    <div class="cover-logo">₦</div>
+    <div class="badge">Google Gemini API Developer Competition</div>
+    <h1>CashTrace</h1>
+    <p class="subtitle">
+      AI-powered cashflow and compliance copilot for Nigerian SMEs.
+      Upload documents, let Gemini extract transactions, and stay NDPR-compliant — all in one platform.
+    </p>
+    <div class="meta">
+      Project Walkthrough &amp; Video Script Guide<br>
+      March 2026
+    </div>
+  </div>
+
+  <!-- ═══════════════════ TABLE OF CONTENTS ═══════════════════ -->
+  <div class="page">
+    <h2>Table of Contents</h2>
+    <div class="toc">
+      <a href="#overview"><span class="num">1.</span> Project Overview</a>
+      <a href="#problem"><span class="num">2.</span> The Problem We Solve</a>
+      <a href="#gemini"><span class="num">3.</span> How Gemini AI Powers CashTrace</a>
+      <a href="#tech"><span class="num">4.</span> Tech Stack &amp; Architecture</a>
+      <a href="#screens"><span class="num">5.</span> Screen-by-Screen Walkthrough</a>
+      <a href="#demo-flow"><span class="num">6.</span> Live Demo Flow (Video Script)</a>
+      <a href="#data-model"><span class="num">7.</span> Data Model</a>
+      <a href="#security"><span class="num">8.</span> Security &amp; Compliance</a>
+      <a href="#future"><span class="num">9.</span> What's Next</a>
+    </div>
+
+    <!-- ═══════════════════ 1. OVERVIEW ═══════════════════ -->
+    <h2 id="overview">1. Project Overview</h2>
+    <p>
+      CashTrace is a full-stack platform that helps small and medium enterprises (SMEs) in Nigeria
+      manage their cashflow using AI. Business owners upload financial documents — receipts, bank
+      statements, POS export files — and Google Gemini automatically extracts, categorizes, and
+      organizes every transaction.
+    </p>
+    <p>
+      The platform is built with compliance at its core, enforcing Nigeria Data Protection Regulation
+      (NDPR) requirements including consent management, data subject access requests, retention
+      policies, and breach notification.
+    </p>
+
+    <div class="callout">
+      <strong>Key Insight:</strong> Nigerian SMEs process hundreds of paper receipts and bank
+      statements monthly. Manual data entry is slow, error-prone, and expensive. CashTrace uses
+      Gemini's multimodal capabilities to turn any document into structured financial data in seconds.
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="ft">AI Document Extraction</div>
+        <div class="fd">Gemini parses receipts (images), bank statements (PDF), and POS exports (CSV)</div>
+      </div>
+      <div class="feature">
+        <div class="ft">Auto-Categorization</div>
+        <div class="fd">13 transaction categories with confidence scores from Gemini</div>
+      </div>
+      <div class="feature">
+        <div class="ft">NDPR Compliance</div>
+        <div class="fd">Consent management, DSAR handling, data retention, breach notification</div>
+      </div>
+      <div class="feature">
+        <div class="ft">Multi-Source Ingest</div>
+        <div class="fd">Receipts, bank statements, POS exports, and manual entry</div>
+      </div>
+      <div class="feature">
+        <div class="ft">Duplicate Detection</div>
+        <div class="fd">Similarity scoring across amount, date, and description</div>
+      </div>
+      <div class="feature">
+        <div class="ft">Audit Trail</div>
+        <div class="fd">Immutable log of every transaction change with user attribution</div>
+      </div>
+      <div class="feature">
+        <div class="ft">AI Insights</div>
+        <div class="fd">Gemini-powered business recommendations and spending analysis</div>
+      </div>
+      <div class="feature">
+        <div class="ft">Multi-Tenant</div>
+        <div class="fd">Strict business-level data isolation with RBAC</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════ 2. PROBLEM ═══════════════════ -->
+    <h2 id="problem">2. The Problem We Solve</h2>
+    <p>
+      Over 40 million SMEs operate in Nigeria, and the vast majority still track finances manually —
+      using paper ledgers, spreadsheets, or basic apps that require tedious data entry. This leads to:
+    </p>
+    <ul>
+      <li>Hours spent weekly on manual transaction entry from receipts and bank statements</li>
+      <li>Miscategorized expenses leading to inaccurate financial reports</li>
+      <li>Missed tax deadlines and compliance violations (FIRS VAT, NDPR)</li>
+      <li>No real-time visibility into cashflow health</li>
+      <li>Duplicate transactions from multiple data sources going undetected</li>
+    </ul>
+    <p>
+      CashTrace eliminates these pain points by letting business owners simply upload their documents
+      and letting Gemini AI do the heavy lifting — extracting every transaction, categorizing it, and
+      flagging potential issues automatically.
+    </p>
+
+    <!-- ═══════════════════ 3. GEMINI ═══════════════════ -->
+    <div class="page-break"></div>
+    <h2 id="gemini">3. How Gemini AI Powers CashTrace</h2>
+    <p>
+      Google Gemini is the core intelligence layer of CashTrace. We use Gemini's multimodal
+      capabilities across three distinct document processing pipelines:
+    </p>
+
+    <h3>3.1 Receipt Parsing (Image → Transactions)</h3>
+    <p>
+      Users photograph paper receipts. The image is sent to Gemini with a structured prompt that
+      instructs it to extract line items, amounts, dates, vendor names, and payment methods. Gemini
+      returns structured JSON with each transaction, a category hint, and a confidence score.
+    </p>
+    <div class="flow">
+      <div class="flow-step">📷 Receipt Photo</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Gemini Vision</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Structured JSON</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Categorized Transactions</div>
+    </div>
+
+    <h3>3.2 Bank Statement Parsing (PDF → Transactions)</h3>
+    <p>
+      PDF bank statements are first converted to text using pdf-parse, then sent to Gemini with
+      context about Nigerian banking formats. Gemini identifies each transaction row, determines
+      credit/debit type, extracts counterparty names, and assigns categories.
+    </p>
+    <div class="flow">
+      <div class="flow-step">📄 PDF Upload</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Text Extraction</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Gemini Analysis</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Transaction Records</div>
+    </div>
+
+    <h3>3.3 POS Export Parsing (CSV → Transactions)</h3>
+    <p>
+      CSV files from POS terminals are parsed with PapaParse, then Gemini analyzes the data to
+      normalize column names, identify transaction types, and categorize each entry — even when
+      CSV formats vary between POS providers.
+    </p>
+    <div class="flow">
+      <div class="flow-step">📊 CSV File</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">PapaParse</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Gemini Normalization</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Unified Transactions</div>
+    </div>
+
+    <h3>3.4 AI-Powered Business Insights</h3>
+    <p>
+      Beyond extraction, Gemini analyzes aggregated transaction data to generate actionable business
+      insights — spending anomalies, cashflow forecasts, tax deadline reminders, and customer
+      concentration risks. Each insight includes a severity level and recommended action.
+    </p>
+
+    <!-- ═══════════════════ 4. TECH STACK ═══════════════════ -->
+    <div class="page-break"></div>
+    <h2 id="tech">4. Tech Stack &amp; Architecture</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Technology</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AI</td>
+          <td>Google Gemini (@google/generative-ai)</td>
+          <td>Document extraction, categorization, insights</td>
+        </tr>
+        <tr>
+          <td>Frontend</td>
+          <td>Next.js 15 + React 19</td>
+          <td>Dashboard UI with App Router</td>
+        </tr>
+        <tr>
+          <td>Backend</td>
+          <td>Express 4 + TypeScript 5.6</td>
+          <td>REST API with dependency injection</td>
+        </tr>
+        <tr>
+          <td>Database</td>
+          <td>PostgreSQL + Prisma ORM</td>
+          <td>Transaction storage, audit trails</td>
+        </tr>
+        <tr>
+          <td>Cache</td>
+          <td>Redis (ioredis)</td>
+          <td>Rate limiting, session caching</td>
+        </tr>
+        <tr>
+          <td>Queue</td>
+          <td>BullMQ</td>
+          <td>Async document processing jobs</td>
+        </tr>
+        <tr>
+          <td>Storage</td>
+          <td>AWS S3</td>
+          <td>Document file storage</td>
+        </tr>
+        <tr>
+          <td>Validation</td>
+          <td>Zod + AJV</td>
+          <td>Runtime schema validation</td>
+        </tr>
+        <tr>
+          <td>Auth</td>
+          <td>JWT + bcrypt</td>
+          <td>Stateless auth with refresh tokens</td>
+        </tr>
+        <tr>
+          <td>Security</td>
+          <td>Helmet + CSRF + CORS</td>
+          <td>HTTP security headers, CSRF protection</td>
+        </tr>
+        <tr>
+          <td>Testing</td>
+          <td>Vitest + fast-check</td>
+          <td>Unit, integration, and property-based tests</td>
+        </tr>
+        <tr>
+          <td>Container</td>
+          <td>Docker (node:20-alpine)</td>
+          <td>Multi-stage production build</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Architecture Diagram</h3>
+    <div class="code" style="text-align: center; font-size: 0.78rem; line-height: 2;">
+      ┌─────────────┐ ┌──────────────┐ ┌─────────────────┐
+      │ Next.js UI │────▶│ Express API │────▶│ Google Gemini │
+      │ (Port 3000)│ │ (Port 4000) │ │ (AI Extraction) │
+      └─────────────┘ └──────┬───────┘ └─────────────────┘
+      │
+      ┌────────────┼────────────┐
+      ▼ ▼ ▼
+      ┌──────────┐ ┌─────────┐ ┌──────────┐
+      │PostgreSQL│ │ Redis │ │ AWS S3 │
+      │(Data) │ │(Cache) │ │(Documents)│
+      └──────────┘ └─────────┘ └──────────┘
+    </div>
+
+    <h3>Project Structure (30+ modules)</h3>
+    <div class="code">
+      src/
+      ├── gemini-integration/ # Gemini AI service, prompts, parsers
+      ├── document-processing/ # Upload, extraction pipeline, job queue
+      ├── transaction-engine/ # CRUD, categorization, duplicate detection
+      ├── compliance/ # NDPR: consent, DSAR, retention, breach
+      ├── access/ # RBAC and business-level data isolation
+      ├── audit/ # Immutable audit trail
+      ├── insights/ # AI-powered business analytics
+      ├── controllers/ # Auth (signup, login, magic-link, etc.)
+      ├── middleware/ # Auth, CSRF, rate limiting, validation
+      ├── frontend/ # Next.js dashboard application
+      └── ... (20+ more modules)
+    </div>
+
+    <!-- ═══════════════════ 5. SCREENS ═══════════════════ -->
+    <div class="page-break"></div>
+    <h2 id="screens">5. Screen-by-Screen Walkthrough</h2>
+    <p>
+      Below is every screen in the CashTrace application with descriptions and screenshot placeholders.
+      Take screenshots of each screen and replace the placeholders before generating the final PDF.
+    </p>
+
+    <h3>5.1 Login Page</h3>
+    <p>
+      Split-panel layout with a teal gradient brand panel on the left showing the CashTrace logo,
+      tagline ("Your business finances, clarified"), and three feature highlights. The right panel
+      contains the login form with email and password fields, a "Forgot password?" link, and a
+      sign-in button. Clean, professional design with Lucide icons.
+    </p>
+    <img src="screenshots/01-login.png" alt="Login Page"
+      style="width:100%; border-radius:12px; border:1px solid #e2e8f0; margin:16px 0 24px 0;" />
+
+    <h3>5.2 Signup Page</h3>
+    <p>
+      Same split-panel layout as login. The form includes email, password, confirm password fields,
+      and an NDPR consent checkbox ("I agree to the Terms of Service and Privacy Policy, and consent
+      to data processing in accordance with NDPR"). This consent is stored in the database as required
+      by Nigerian data protection law.
+    </p>
+    <img src="screenshots/02-signup.png" alt="Signup Page"
+      style="width:100%; border-radius:12px; border:1px solid #e2e8f0; margin:16px 0 24px 0;" />
+
+    <h3>5.3 Dashboard</h3>
+    <p>
+      The main overview screen after login. Features a sidebar navigation (Dashboard, Transactions,
+      Documents, Insights, Settings) and a content area with:
+    </p>
+    <ul>
+      <li>Personalized greeting ("Good afternoon, demo")</li>
+      <li>Four summary cards: Revenue, Expenses, Net Profit, Pending — all in Naira (₦)</li>
+      <li>Recent Transactions list with color-coded inflows (green) and outflows (red)</li>
+      <li>AI Insights panel with severity-coded alerts (tax deadlines, spending spikes, compliance)</li>
+      <li>Quick Actions: Upload, Record, Report</li>
+    </ul>
+    <img src="screenshots/03-dashboard.png" alt="Dashboard"
+      style="width:100%; border-radius:12px; border:1px solid #e2e8f0; margin:16px 0 24px 0;" />
+
+    <h3>5.4 Documents Page (Upload &amp; AI Extraction)</h3>
+    <p>
+      This is where the Gemini magic happens. The page shows a drag-and-drop upload zone that accepts
+      receipts (JPG, PNG), bank statements (PDF), and POS exports (CSV). After upload:
+    </p>
+    <ul>
+      <li>A loading spinner shows "Gemini AI is analyzing your document..."</li>
+      <li>Once complete, a metadata bar shows processing time, model used, confidence score, and transaction count</li>
+      <li>A table displays all extracted transactions with description, category, date, and amount</li>
+      <li>A "Save transactions" button persists them to the database</li>
+    </ul>
+    <img src="screenshots/04-documents.png" alt="Documents - Upload Zone"
+      style="width:100%; border-radius:12px; border:1px solid #e2e8f0; margin:16px 0 24px 0;" />
+    <div class="screenshot">
+      <div class="label">Screenshot: Documents — Gemini Processing</div>
+      <div class="hint">Upload a file during your video recording to capture this live</div>
+    </div>
+    <div class="screenshot">
+      <div class="label">Screenshot: Documents — Extraction Results</div>
+      <div class="hint">Capture this during your video recording after Gemini finishes extraction</div>
+    </div>
+
+    <h3>5.5 Transactions Page</h3>
+    <p>
+      Displays all saved transactions fetched from the PostgreSQL database. Features:
+    </p>
+    <ul>
+      <li>Summary strip: Total Inflows (green), Total Outflows (red), Net Position (teal)</li>
+      <li>Filter buttons: All / Inflows / Outflows</li>
+      <li>Search bar for filtering by description</li>
+      <li>Table with columns: Description (with inflow/outflow icon), Category, Source (Receipt/Bank Statement/POS
+        Export/Manual), Date, Amount</li>
+      <li>Empty state when no transactions exist yet</li>
+    </ul>
+    <img src="screenshots/05-transactions.png" alt="Transactions Page"
+      style="width:100%; border-radius:12px; border:1px solid #e2e8f0; margin:16px 0 24px 0;" />
+
+    <h3>5.6 Insights Page</h3>
+    <p>
+      AI-powered business recommendations tagged with an "AI-Powered" badge. Shows:
+    </p>
+    <ul>
+      <li>Summary strip: Action Required count, Opportunities count, Potential Savings amount</li>
+      <li>Insight cards with severity levels (Critical/High/Medium/Low/Info), each with a colored left border</li>
+      <li>Each insight has: category tag, title, description, impact amount, and action button</li>
+      <li>Example insights: VAT return deadline, cash reserve warning, logistics cost spike, NDPR compliance status</li>
+    </ul>
+    <img src="screenshots/06-insights.png" alt="Insights Page"
+      style="width:100%; border-radius:12px; border:1px solid #e2e8f0; margin:16px 0 24px 0;" />
+
+    <h3>5.7 Settings Page</h3>
+    <p>
+      Account management and NDPR compliance controls:
+    </p>
+    <ul>
+      <li>Profile section: first name, last name, email (read-only)</li>
+      <li>Appearance: Light/Dark/System theme toggle</li>
+      <li>Notifications: toggles for transaction alerts, weekly summary, compliance reminders</li>
+      <li>Data &amp; Privacy (NDPR): Export my data (DSAR), Manage consent, Delete account</li>
+    </ul>
+    <img src="screenshots/07-settings.png" alt="Settings Page"
+      style="width:100%; border-radius:12px; border:1px solid #e2e8f0; margin:16px 0 24px 0;" />
+
+    <!-- ═══════════════════ 6. DEMO FLOW ═══════════════════ -->
+    <div class="page-break"></div>
+    <h2 id="demo-flow">6. Live Demo Flow (Video Script)</h2>
+    <p>
+      Use this as your script when recording the walkthrough video. Each step maps to a screen
+      transition. Estimated total time: 4–5 minutes.
+    </p>
+
+    <h3>Opening (30 seconds)</h3>
+    <div class="callout">
+      <strong>Script:</strong> "CashTrace is an AI-powered cashflow copilot for Nigerian SMEs.
+      It uses Google Gemini to automatically extract transactions from receipts, bank statements,
+      and POS exports — so business owners spend less time on data entry and more time growing
+      their business. Let me show you how it works."
+    </div>
+
+    <h3>Scene 1: Authentication (30 seconds)</h3>
+    <div class="steps">
+      <div class="step">
+        <strong>Show the Login page.</strong> Point out the split-panel design — brand panel on the
+        left with the CashTrace logo and feature highlights, login form on the right.
+      </div>
+      <div class="step">
+        <strong>Click "Create one" to go to Signup.</strong> Highlight the NDPR consent checkbox —
+        "This is required by Nigerian data protection law. We store consent records in the database."
+      </div>
+      <div class="step">
+        <strong>Go back and log in</strong> with the demo account. Show the redirect to the Dashboard.
+      </div>
+    </div>
+
+    <h3>Scene 2: Dashboard Overview (45 seconds)</h3>
+    <div class="steps">
+      <div class="step">
+        <strong>Walk through the summary cards</strong> — Revenue, Expenses, Net Profit, Pending.
+        "All amounts are in Nigerian Naira, stored as kobo internally to avoid floating-point issues."
+      </div>
+      <div class="step">
+        <strong>Point to Recent Transactions.</strong> "These are color-coded — green for inflows,
+        red for outflows. Each shows the category and timestamp."
+      </div>
+      <div class="step">
+        <strong>Highlight the Insights panel.</strong> "These are AI-generated alerts — tax deadlines,
+        spending anomalies, compliance status. We'll see more of this on the Insights page."
+      </div>
+    </div>
+
+    <h3>Scene 3: Document Upload &amp; Gemini Extraction (90 seconds) — THE KEY DEMO</h3>
+    <div class="steps">
+      <div class="step">
+        <strong>Navigate to Documents.</strong> "This is where Gemini AI does the heavy lifting.
+        You can upload receipts as images, bank statements as PDFs, or POS exports as CSVs."
+      </div>
+      <div class="step">
+        <strong>Upload a CSV file</strong> (the sample bank statement). Show the drag-and-drop zone
+        accepting the file.
+      </div>
+      <div class="step">
+        <strong>Show the processing state.</strong> "The file is sent to our backend, which calls
+        Google Gemini's API. Gemini analyzes the document and extracts every transaction with
+        descriptions, amounts, dates, and categories."
+      </div>
+      <div class="step">
+        <strong>Results appear.</strong> Point to the metadata bar — "Processing took X milliseconds,
+        Gemini identified Y transactions with Z% confidence." Walk through a few rows in the table.
+      </div>
+      <div class="step">
+        <strong>Click "Save transactions".</strong> "These are now persisted to our PostgreSQL
+        database. Watch — it redirects us to the Transactions page."
+      </div>
+    </div>
+
+    <h3>Scene 4: Transactions (30 seconds)</h3>
+    <div class="steps">
+      <div class="step">
+        <strong>Show the saved transactions</strong> now appearing in the table. "These came directly
+        from Gemini's extraction. Each has a source tag — Bank Statement, Receipt, POS Export."
+      </div>
+      <div class="step">
+        <strong>Demo the filters.</strong> Click "Inflows" then "Outflows" to filter. Use the search
+        bar to find a specific transaction.
+      </div>
+      <div class="step">
+        <strong>Point to the summary strip.</strong> "Total inflows, total outflows, and net position
+        are calculated in real-time from the database."
+      </div>
+    </div>
+
+    <h3>Scene 5: AI Insights (30 seconds)</h3>
+    <div class="steps">
+      <div class="step">
+        <strong>Navigate to Insights.</strong> "Gemini also powers our business intelligence layer.
+        These insights are generated by analyzing transaction patterns."
+      </div>
+      <div class="step">
+        <strong>Walk through 2-3 insight cards.</strong> Highlight the severity levels, impact amounts,
+        and action buttons. "The VAT return reminder alone could save a business from FIRS penalties."
+      </div>
+    </div>
+
+    <h3>Scene 6: Settings &amp; NDPR Compliance (30 seconds)</h3>
+    <div class="steps">
+      <div class="step">
+        <strong>Navigate to Settings.</strong> Scroll to the Data &amp; Privacy section.
+        "CashTrace is built with NDPR compliance at its core — users can export their data,
+        manage consent, or delete their account at any time."
+      </div>
+    </div>
+
+    <h3>Closing (30 seconds)</h3>
+    <div class="callout">
+      <strong>Script:</strong> "CashTrace turns document chaos into financial clarity. With Gemini
+      handling the extraction and categorization, Nigerian SMEs can finally see their cashflow in
+      real-time — without the manual data entry. The platform is built on a robust backend with
+      30+ modules covering everything from authentication to compliance to observability.
+      Thank you for watching."
+    </div>
+
+    <!-- ═══════════════════ 7. DATA MODEL ═══════════════════ -->
+    <div class="page-break"></div>
+    <h2 id="data-model">7. Data Model</h2>
+    <p>
+      CashTrace uses PostgreSQL with Prisma ORM. Key models and their relationships:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Key Fields</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Transaction</td>
+          <td>id, businessId, sourceType, transactionType, transactionDate, description, amountKobo, category,
+            categoryConfidence</td>
+          <td>Core financial record. Amounts stored as BigInt in kobo.</td>
+        </tr>
+        <tr>
+          <td>Document</td>
+          <td>id, businessId, documentType (RECEIPT_IMAGE, BANK_STATEMENT, POS_EXPORT), status, s3Key</td>
+          <td>Uploaded file metadata and processing status.</td>
+        </tr>
+        <tr>
+          <td>ProcessingJob</td>
+          <td>id, documentId, status, attempts, maxAttempts</td>
+          <td>Async extraction job with retry logic.</td>
+        </tr>
+        <tr>
+          <td>TransactionAudit</td>
+          <td>id, transactionId, userId, action, changes, ipAddress</td>
+          <td>Immutable audit trail for every change.</td>
+        </tr>
+        <tr>
+          <td>DuplicatePair</td>
+          <td>transaction1Id, transaction2Id, similarityScore, status</td>
+          <td>Detected duplicate transactions for review.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>Transaction Categories (13 total)</h4>
+    <div class="code">
+      PRODUCT_SALES | SERVICE_REVENUE | OTHER_INCOME
+      RENT_UTILITIES | SALARIES_WAGES | TRANSPORTATION_LOGISTICS
+      EQUIPMENT_MAINTENANCE | BANK_CHARGES_FEES | TAXES_LEVIES
+      INVENTORY_STOCK | MARKETING_ADVERTISING | PROFESSIONAL_SERVICES
+      MISCELLANEOUS_EXPENSES
+    </div>
+
+    <h4>Source Types</h4>
+    <div class="code">
+      RECEIPT — Extracted from receipt images via Gemini Vision
+      BANK_STATEMENT — Extracted from PDF bank statements via Gemini
+      POS_EXPORT — Extracted from CSV POS terminal exports via Gemini
+      MANUAL — Manually entered by the user
+    </div>
+
+    <!-- ═══════════════════ 8. SECURITY ═══════════════════ -->
+    <h2 id="security">8. Security &amp; Compliance</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Implementation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Authentication</td>
+          <td>JWT access + refresh tokens, bcrypt password hashing, magic link login</td>
+        </tr>
+        <tr>
+          <td>CSRF Protection</td>
+          <td>Double-submit cookie pattern with x-csrf-token header</td>
+        </tr>
+        <tr>
+          <td>Rate Limiting</td>
+          <td>Redis-backed sliding window rate limiter</td>
+        </tr>
+        <tr>
+          <td>Security Headers</td>
+          <td>Helmet.js (CSP, HSTS, X-Frame-Options, etc.)</td>
+        </tr>
+        <tr>
+          <td>Data Isolation</td>
+          <td>Business-level tenant isolation on every query</td>
+        </tr>
+        <tr>
+          <td>NDPR Consent</td>
+          <td>Explicit consent collection at signup, stored with timestamps</td>
+        </tr>
+        <tr>
+          <td>DSAR Support</td>
+          <td>Data export and deletion endpoints for data subject requests</td>
+        </tr>
+        <tr>
+          <td>Audit Trail</td>
+          <td>Immutable log of all transaction modifications</td>
+        </tr>
+        <tr>
+          <td>PII Scrubbing</td>
+          <td>Structured logging with automatic PII redaction</td>
+        </tr>
+        <tr>
+          <td>Encryption</td>
+          <td>Encryption service for sensitive data at rest</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ═══════════════════ 9. FUTURE ═══════════════════ -->
+    <h2 id="future">9. What's Next</h2>
+    <ul>
+      <li>Real-time Gemini streaming for live extraction progress feedback</li>
+      <li>Multi-currency support (USD, GBP, EUR) with automatic conversion</li>
+      <li>Mobile app with camera-based receipt scanning</li>
+      <li>Automated tax report generation (FIRS VAT, WHT)</li>
+      <li>Bank API integrations for automatic statement import</li>
+      <li>Gemini-powered cashflow forecasting with scenario modeling</li>
+      <li>Team collaboration with role-based access (Owner, Accountant, Viewer)</li>
+      <li>WhatsApp bot for transaction recording via chat</li>
+    </ul>
+
+    <div
+      style="margin-top: 60px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 0.8rem;">
+      CashTrace — Built with Google Gemini AI &bull; March 2026
+    </div>
+  </div>
+
+</body>
+
+</html>

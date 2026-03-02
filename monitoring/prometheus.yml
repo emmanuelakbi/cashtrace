@@ -1,0 +1,21 @@
+# ─── CashTrace — Prometheus Configuration ─────────────────────────────────────
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: cashtrace-api
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - localhost:3000
+        labels:
+          environment: development
+          service: cashtrace-api
+
+  - job_name: node-exporter
+    static_configs:
+      - targets:
+          - localhost:9100
