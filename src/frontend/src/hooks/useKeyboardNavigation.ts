@@ -37,10 +37,7 @@ export interface UseFocusTrapOptions {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getFocusableItems(
-  container: HTMLElement | null,
-  selector: string,
-): HTMLElement[] {
+function getFocusableItems(container: HTMLElement | null, selector: string): HTMLElement[] {
   if (!container) return [];
   return Array.from(container.querySelectorAll<HTMLElement>(selector));
 }
@@ -155,10 +152,8 @@ export function useKeyboardNavigation(
  * Requirement: 13.1
  */
 export function useFocusTrap(options: UseFocusTrapOptions): React.RefObject<HTMLElement | null> {
-  const {
-    active,
-    focusableSelector = 'a, button, input, select, textarea, [tabindex="0"]',
-  } = options;
+  const { active, focusableSelector = 'a, button, input, select, textarea, [tabindex="0"]' } =
+    options;
   const internalRef = useRef<HTMLElement | null>(null);
   const trapRef = options.containerRef ?? internalRef;
 
@@ -180,12 +175,12 @@ export function useFocusTrap(options: UseFocusTrapOptions): React.RefObject<HTML
       if (event.shiftKey) {
         if (document.activeElement === first) {
           event.preventDefault();
-          last.focus();
+          last?.focus();
         }
       } else {
         if (document.activeElement === last) {
           event.preventDefault();
-          first.focus();
+          first?.focus();
         }
       }
     };
@@ -195,7 +190,7 @@ export function useFocusTrap(options: UseFocusTrapOptions): React.RefObject<HTML
     // Focus the first focusable element on activation
     const focusable = getFocusableItems(container, focusableSelector);
     if (focusable.length > 0) {
-      focusable[0].focus();
+      focusable[0]?.focus();
     }
 
     return () => {

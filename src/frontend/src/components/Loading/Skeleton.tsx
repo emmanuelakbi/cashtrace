@@ -33,7 +33,7 @@ export const Skeleton: FC<SkeletonProps> = ({
     text: { width: '100%', height: '0.875rem' },
   };
 
-  const dims = defaultDimensions[variant];
+  const dims = defaultDimensions[variant] ?? { width: '100%', height: '1rem' };
 
   return (
     <div
