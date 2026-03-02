@@ -26,8 +26,32 @@ export interface DbConfig {
 
 /**
  * Build database configuration from environment variables with sensible defaults.
+ * Supports both individual DB_* vars and a single DATABASE_URL connection string.
  */
 export function getDbConfig(): DbConfig {
+  const databaseUrl = process.env['DATABASE_URL'];
+
+  // If DATABASE_URL is set and no explicit DB_HOST override, parse the URL
+  if (databaseUrl && !process.env['DB_HOST']) {
+    try {
+      const url = new URL(databaseUrl);
+      return {
+        host: url.hostname,
+        port: parseInt(url.port || '5432', 10),
+        database: url.pathname.replace(/^\//, ''),
+        user: url.username,
+        password: decodeURIComponent(url.password),
+        max: parseInt(process.env['DB_POOL_MAX'] ?? '20', 10),
+        idleTimeoutMillis: parseInt(process.env['DB_IDLE_TIMEOUT'] ?? '30000', 10),
+        connectionTimeoutMillis: parseInt(process.env['DB_CONNECT_TIMEOUT'] ?? '5000', 10),
+        ssl:
+          url.searchParams.get('sslmode') !== 'disable' && process.env['NODE_ENV'] === 'production',
+      };
+    } catch {
+      // Fall through to individual env vars
+    }
+  }
+
   return {
     host: process.env['DB_HOST'] ?? 'localhost',
     port: parseInt(process.env['DB_PORT'] ?? '5432', 10),

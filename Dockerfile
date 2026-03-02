@@ -12,6 +12,7 @@ RUN npm ci
 # Copy source code
 COPY tsconfig.json ./
 COPY src/ ./src/
+COPY prisma/ ./prisma/
 
 # Compile TypeScript
 RUN npm run build
@@ -31,14 +32,18 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy compiled output from build stage
 COPY --from=build /app/dist ./dist
 
+# Copy Prisma schema and SQL migrations for production use
+COPY --from=build /app/prisma ./prisma
+COPY src/migrations/ ./migrations/
+
 # Switch to non-root user
 USER cashtrace
 
-# Expose application port
-EXPOSE 3000
+# Expose application port (Railway sets PORT dynamically)
+EXPOSE 4000
 
-# Health check against the API health endpoint
+# Health check — uses PORT env var with fallback to 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-4000}/api/health || exit 1
 
 CMD ["node", "dist/server.js"]
