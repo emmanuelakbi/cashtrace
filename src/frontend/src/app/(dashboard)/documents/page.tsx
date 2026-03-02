@@ -3,17 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Upload,
-  FileText,
-  Image,
-  FileSpreadsheet,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Sparkles,
-  ArrowRight,
-} from 'lucide-react';
+import { Upload, Loader2, CheckCircle2, XCircle, Sparkles, ArrowRight } from 'lucide-react';
 
 function getCookie(name: string): string | undefined {
   const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
@@ -48,14 +38,6 @@ const card: React.CSSProperties = {
   padding: '1.5rem',
   border: '1px solid var(--ct-border-subtle)',
 };
-
-function getFileIcon(name: string): typeof FileText {
-  const ext = name.split('.').pop()?.toLowerCase();
-  if (ext === 'pdf') return FileText;
-  if (ext === 'csv') return FileSpreadsheet;
-  if (['jpg', 'jpeg', 'png', 'webp'].includes(ext ?? '')) return Image;
-  return FileText;
-}
 
 export default function DocumentsPage(): React.JSX.Element {
   const router = useRouter();
