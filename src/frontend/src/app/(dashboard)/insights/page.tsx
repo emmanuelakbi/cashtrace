@@ -163,7 +163,7 @@ export default function InsightsPage(): React.JSX.Element {
             value: '₦313,000',
             color: 'var(--ct-success)',
           },
-        ].map((s, i) => (
+        ].map((s) => (
           <div key={s.label} style={{ ...card, padding: '1rem 1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div
