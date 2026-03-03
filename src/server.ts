@@ -16,6 +16,7 @@ import { GeminiService } from './gemini-integration/index.js';
 import { loadConfig } from './gemini-integration/config/index.js';
 import type { ExtractionResult } from './gemini-integration/index.js';
 import type { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 
 // ─── Repositories ───
 import * as userRepository from './repositories/userRepository.js';
@@ -380,10 +381,33 @@ async function bootstrap(): Promise<void> {
         return;
       }
 
-      // Get user from localStorage-stored user (passed as header or from cookie)
-      // For demo, use a fixed businessId from the user
-      const userHeader = req.headers['x-user-id'] as string | undefined;
-      const businessId = userHeader ?? 'demo-business';
+      // Get user's business from JWT access token
+      let businessId: string | null = null;
+      const accessToken = req.cookies?.['access-token'] as string | undefined;
+      if (accessToken) {
+        try {
+          const decoded = jwt.verify(accessToken, process.env['JWT_SECRET'] ?? '') as {
+            userId?: string;
+          };
+          if (decoded.userId) {
+            const bizResult = await query(
+              'SELECT id FROM businesses WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
+              [decoded.userId],
+            );
+            if (bizResult.rows.length > 0) {
+              businessId = bizResult.rows[0].id;
+            }
+          }
+        } catch {
+          /* token invalid — fall through */
+        }
+      }
+      if (!businessId) {
+        res
+          .status(401)
+          .json({ success: false, error: { message: 'No business found for this user.' } });
+        return;
+      }
 
       const categoryMap: Record<string, string> = {
         PRODUCT_SALES: 'PRODUCT_SALES',
