@@ -402,10 +402,23 @@ async function bootstrap(): Promise<void> {
           /* token invalid — fall through */
         }
       }
+      // Fallback: use first business in DB (demo convenience)
+      if (!businessId) {
+        const fallback = await query(
+          'SELECT id FROM businesses WHERE deleted_at IS NULL LIMIT 1',
+          [],
+        );
+        if (fallback.rows.length > 0) {
+          businessId = fallback.rows[0].id;
+        }
+      }
       if (!businessId) {
         res
-          .status(401)
-          .json({ success: false, error: { message: 'No business found for this user.' } });
+          .status(400)
+          .json({
+            success: false,
+            error: { message: 'No business found. Create a business first.' },
+          });
         return;
       }
 
