@@ -417,7 +417,7 @@ async function bootstrap(): Promise<void> {
 
         const result = await query(
           `INSERT INTO transactions (id, business_id, source_type, transaction_type, transaction_date, description, amount_kobo, counterparty, reference, category, category_source, category_confidence, raw_metadata, updated_at)
-           VALUES (gen_random_uuid(), $1, $2::"SourceType", $3::"TransactionType", $4::date, $5, $6, $7, $8, $9::"TransactionCategory", 'AUTO'::"CategorySource", $10, '{}', now())
+           VALUES (gen_random_uuid(), $1, $2::source_type, $3::transaction_type, $4::date, $5, $6, $7, $8, $9::transaction_category, 'AUTO'::category_source, $10, '{}', now())
            RETURNING id`,
           [
             businessId,
@@ -458,7 +458,7 @@ async function bootstrap(): Promise<void> {
       let paramIdx = 1;
 
       if (typeFilter && (typeFilter === 'INFLOW' || typeFilter === 'OUTFLOW')) {
-        sql += ` AND transaction_type = $${paramIdx}::"TransactionType"`;
+        sql += ` AND transaction_type = $${paramIdx}::transaction_type`;
         params.push(typeFilter);
         paramIdx++;
       }
